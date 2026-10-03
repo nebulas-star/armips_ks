@@ -68,6 +68,9 @@ bool encodeAssembly(std::unique_ptr<CAssemblerCommand> content, SymbolData& symD
 		return false;
 	}
 
+	if (!g_infoLog.start())
+		return false;
+
 #ifdef _DEBUG
 	if (!Logger::isSilent())
 		printf("Encode...\n");
@@ -107,6 +110,8 @@ bool encodeAssembly(std::unique_ptr<CAssemblerCommand> content, SymbolData& symD
 		writeSymData();
 		content->Encode();
 	}
+
+	g_infoLog.end();
 
 	if (g_fileManager->hasOpenFile())
 	{
@@ -150,6 +155,7 @@ bool runArmips(ArmipsArguments& settings)
 	Global.relativeInclude = false;
 	Global.multiThreading = true;
 	Architecture::setCurrent(InvalidArchitecture);
+	g_infoLog.clear();
 
 	Tokenizer::clearEquValues();
 	Logger::clear();
@@ -180,6 +186,9 @@ bool runArmips(ArmipsArguments& settings)
 
 	if (!settings.tempFileName.empty())
 		tempData.setFileName(settings.tempFileName);
+
+	if (!settings.infoLogFileName.empty())
+		g_infoLog.setFileName(settings.infoLogFileName);
 
 	Token token;
 	for (size_t i = 0; i < settings.equList.size(); i++)

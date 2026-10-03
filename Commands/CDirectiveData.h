@@ -4,7 +4,7 @@
 #include "Core/Expression.h"
 #include "Util/EncodingTable.h"
 
-enum class EncodingMode { Invalid, U8, U16, U32, U64, Ascii, Float, Double, Sjis, Custom };
+enum class EncodingMode { Invalid, U8, U16, U32, U64, Ascii, Utf8, Float, Double, Sjis, Custom };
 
 class TableCommand: public CAssemblerCommand
 {
@@ -27,6 +27,7 @@ public:
 	void setFloat(std::vector<Expression>& entries);
 	void setDouble(std::vector<Expression>& entries);
 	void setAscii(std::vector<Expression>& entries, bool terminate);
+	void setUtf8(std::vector<Expression>& entries, bool terminate);
 	void setSjis(std::vector<Expression>& entries, bool terminate);
 	void setCustom(std::vector<Expression>& entries, bool terminate);
 	bool Validate(const ValidateState &state) override;
@@ -39,6 +40,7 @@ private:
 	void encodeFloat();
 	void encodeDouble();
 	void encodeNormal();
+	void encodeUtf8();
 	size_t getUnitSize() const;
 	size_t getDataSize() const;
 	

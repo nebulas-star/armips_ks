@@ -5,6 +5,7 @@
 #include "Archs/ARM/ArmParser.h"
 #include "Archs/ARM/CArmInstruction.h"
 #include "Archs/ARM/CThumbInstruction.h"
+#include "Archs/ARM/KeystoneArmInstruction.h"
 #include "Core/Common.h"
 #include "Core/Misc.h"
 
@@ -30,6 +31,15 @@ std::unique_ptr<CAssemblerCommand> CArmArchitecture::parseDirective(Parser& pars
 std::unique_ptr<CAssemblerCommand> CArmArchitecture::parseOpcode(Parser& parser)
 {
 	ArmParser armParser;
+	if (isArmV7A())
+	{
+#ifdef ARMIPS_HAS_KEYSTONE
+		return armParser.parseKeystoneOpcode(parser, thumb, getEndianness());
+#else
+		Logger::printError(Logger::Error, "ARMv7-A support was not enabled at build time");
+		return nullptr;
+#endif
+	}
 
 	if (thumb)
 		return armParser.parseThumbOpcode(parser);
@@ -46,6 +56,9 @@ void CArmArchitecture::clear()
 {
 	currentPoolContent.clear();
 	thumb = false;
+#ifdef ARMIPS_HAS_KEYSTONE
+	resetKeystoneArmParserState();
+#endif
 }
 
 void CArmArchitecture::Pass2()

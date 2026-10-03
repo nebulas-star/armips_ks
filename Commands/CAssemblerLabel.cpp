@@ -11,6 +11,14 @@ CAssemblerLabel::CAssemblerLabel(const Identifier& name, const Identifier& origi
 {
 	this->defined = false;
 	this->label = nullptr;
+
+	if (&Architecture::current() == &Arm && Arm.isArmV7A() &&
+		(Global.symbolTable.isStaticSymbol(name) || Global.symbolTable.isLocalSymbol(name)))
+	{
+		Logger::printError(Logger::Error,
+			"@StaticLabel and @@LocalLabel are not supported by the ARMv7-A backend");
+		return;
+	}
 	
 	if (!Global.symbolTable.isLocalSymbol(name))	
 		updateSection(++Global.Section);
@@ -42,6 +50,9 @@ CAssemblerLabel::CAssemblerLabel(const Identifier& name, const Identifier& origi
 
 bool CAssemblerLabel::Validate(const ValidateState &state)
 {
+	if (label == nullptr)
+		return false;
+
 	bool result = false;
 	if (!defined)
 	{
@@ -97,12 +108,18 @@ void CAssemblerLabel::Encode() const
 
 void CAssemblerLabel::writeTempData(TempData& tempData) const
 {
+	if (label == nullptr)
+		return;
+
 	if (!Global.symbolTable.isGeneratedLabel(label->getName()))
 		tempData.writeLine(label->getValue(),tfm::format("%s:",label->getName()));
 }
 
 void CAssemblerLabel::writeSymData(SymbolData& symData) const
 {
+	if (label == nullptr)
+		return;
+
 	// TODO: find a less ugly way to check for undefined memory positions
 	if (label->getValue() == -1 || Global.symbolTable.isGeneratedLabel(label->getName()))
 		return;

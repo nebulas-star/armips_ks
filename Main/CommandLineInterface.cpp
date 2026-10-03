@@ -17,6 +17,7 @@ static void printUsage(const std::string &executableName)
 	Logger::printLine(" -temp <TEMP>              Output temporary assembly data to <TEMP> file");
 	Logger::printLine(" -sym  <SYM>               Output symbol data in the sym format to <SYM> file");
 	Logger::printLine(" -sym2 <SYM2>              Output symbol data in the sym2 format to <SYM2> file");
+	Logger::printLine(" -infolog <FILE>           Output .info messages to <FILE>");
 	Logger::printLine(" -root <ROOT>              Use <ROOT> as working directory during execution");
 	Logger::printLine(" -equ  <NAME> <VAL>        Equivalent to \'<NAME> equ <VAL>\' in code");
 	Logger::printLine(" -strequ <NAME> <VAL>      Equivalent to \'<NAME> equ \"<VAL>\"\' in code");
@@ -56,6 +57,11 @@ static bool parseArguments(const std::vector<std::string>& arguments, ArmipsArgu
 			{
 				settings.symFileName = arguments[argpos + 1];
 				settings.symFileVersion = 2;
+				argpos += 2;
+			}
+			else if (arguments[argpos] == "-infolog" && argpos + 1 < arguments.size())
+			{
+				settings.infoLogFileName = arguments[argpos + 1];
 				argpos += 2;
 			}
 			else if (arguments[argpos] == "-erroronwarning")

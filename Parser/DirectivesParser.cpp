@@ -1,6 +1,7 @@
 #include "Parser/DirectivesParser.h"
 
 #include "Archs/ARM/Arm.h"
+#include "Archs/ARM/KeystoneArmInstruction.h"
 #include "Archs/MIPS/Mips.h"
 #include "Archs/SuperH/SuperH.h"
 #include "Commands/CAssemblerLabel.h"
@@ -388,6 +389,9 @@ std::unique_ptr<CAssemblerCommand> parseDirectiveData(Parser& parser, int flags)
 	case DIRECTIVE_DATA_ASCII:
 		data->setAscii(list,terminate);
 		break;
+	case DIRECTIVE_DATA_UTF8:
+		data->setUtf8(list,terminate);
+		break;
 	case DIRECTIVE_DATA_SJIS:
 		data->setSjis(list,terminate);
 		break;
@@ -434,6 +438,9 @@ std::unique_ptr<CAssemblerCommand> parseDirectiveMipsArch(Parser& parser, int fl
 
 std::unique_ptr<CAssemblerCommand> parseDirectiveArmArch(Parser& parser, int flags)
 {
+#ifdef ARMIPS_HAS_KEYSTONE
+	resetKeystoneArmParserState();
+#endif
 	Architecture::setCurrent(Arm);
 
 	switch (flags)
@@ -458,6 +465,24 @@ std::unique_ptr<CAssemblerCommand> parseDirectiveArmArch(Parser& parser, int fla
 		Arm.SetThumbMode(false);
 		Arm.setVersion(AARCH_LITTLE);
 		return std::make_unique<ArchitectureCommand>(".arm.little\n.arm", ".arm");
+	case DIRECTIVE_ARM_V7A:
+#ifdef ARMIPS_HAS_KEYSTONE
+		Arm.SetThumbMode(false);
+		Arm.setVersion(AARCH_ARMV7A);
+		return std::make_unique<ArchitectureCommand>(".armv7a\n.arm", ".arm");
+#else
+		parser.printError(parser.peekToken(), "ARMv7-A support was not enabled at build time");
+		return nullptr;
+#endif
+	case DIRECTIVE_ARM_V7A_BIG:
+#ifdef ARMIPS_HAS_KEYSTONE
+		Arm.SetThumbMode(false);
+		Arm.setVersion(AARCH_ARMV7A_BIG);
+		return std::make_unique<ArchitectureCommand>(".armv7a.big\n.arm", ".arm");
+#else
+		parser.printError(parser.peekToken(), "ARMv7-A support was not enabled at build time");
+		return nullptr;
+#endif
 	}
 
 	return nullptr;
@@ -703,6 +728,15 @@ std::unique_ptr<CAssemblerCommand> parseDirectiveMessage(Parser& parser, int fla
 	return nullptr;
 }
 
+std::unique_ptr<CAssemblerCommand> parseDirectiveInfo(Parser& parser, int flags)
+{
+	std::vector<Expression> expressions;
+	if (!parser.parseExpressionList(expressions,1,-1))
+		return nullptr;
+
+	return std::make_unique<CDirectiveInfo>(std::move(expressions));
+}
+
 std::unique_ptr<CAssemblerCommand> parseDirectiveInclude(Parser& parser, int flags)
 {
 	const Token& start = parser.peekToken();
@@ -807,6 +841,8 @@ const DirectiveMap directives = {
 	{ ".double",          { &parseDirectiveData,            DIRECTIVE_DATA_DOUBLE } },
 	{ ".ascii",           { &parseDirectiveData,            DIRECTIVE_DATA_ASCII } },
 	{ ".asciiz",          { &parseDirectiveData,            DIRECTIVE_DATA_ASCII|DIRECTIVE_DATA_TERMINATION } },
+	{ ".utf8",            { &parseDirectiveData,            DIRECTIVE_DATA_UTF8|DIRECTIVE_DATA_TERMINATION } },
+	{ ".utf8n",           { &parseDirectiveData,            DIRECTIVE_DATA_UTF8 } },
 	{ ".string",          { &parseDirectiveData,            DIRECTIVE_DATA_CUSTOM|DIRECTIVE_DATA_TERMINATION } },
 	{ ".str",             { &parseDirectiveData,            DIRECTIVE_DATA_CUSTOM|DIRECTIVE_DATA_TERMINATION } },
 	{ ".stringn",         { &parseDirectiveData,            DIRECTIVE_DATA_CUSTOM } },
@@ -825,6 +861,8 @@ const DirectiveMap directives = {
 	{ ".3ds",             { &parseDirectiveArmArch,         DIRECTIVE_ARM_3DS } },
 	{ ".arm.big",         { &parseDirectiveArmArch,         DIRECTIVE_ARM_BIG } },
 	{ ".arm.little",      { &parseDirectiveArmArch,         DIRECTIVE_ARM_LITTLE } },
+	{ ".armv7a",          { &parseDirectiveArmArch,         DIRECTIVE_ARM_V7A } },
+	{ ".armv7a.big",      { &parseDirectiveArmArch,         DIRECTIVE_ARM_V7A_BIG } },
 
 	{ ".saturn",          { &parseDirectiveShArch,          DIRECTIVE_SH_SATURN } },
 	{ ".32x",             { &parseDirectiveShArch,          DIRECTIVE_SH_SATURN } },
@@ -850,6 +888,7 @@ const DirectiveMap directives = {
 	{ ".warning",         { &parseDirectiveMessage,         DIRECTIVE_MSG_WARNING } },
 	{ ".error",           { &parseDirectiveMessage,         DIRECTIVE_MSG_ERROR } },
 	{ ".notice",          { &parseDirectiveMessage,         DIRECTIVE_MSG_NOTICE } },
+	{ ".info",            { &parseDirectiveInfo,            0 } },
 
 	{ ".include",         { &parseDirectiveInclude,         0 } },
 

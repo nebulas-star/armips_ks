@@ -1,0 +1,3 @@
+Unsupported.asm(4) error: @StaticLabel and @@LocalLabel are not supported by the ARMv7-A backend
+Unsupported.asm(7) error: .pool is not supported by the ARMv7-A backend
+Unsupported.asm(9) error: Literal-pool syntax (ldr ..., =value) is not supported by the ARMv7-A backend

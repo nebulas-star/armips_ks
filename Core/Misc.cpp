@@ -14,6 +14,7 @@ bool Logger::fatalError = false;
 bool Logger::errorOnWarning = false;
 bool Logger::silent = false;
 int Logger::suppressLevel = 0;
+InfoLog g_infoLog;
 
 std::string Logger::formatError(ErrorType type, const char* text)
 {
@@ -172,4 +173,40 @@ void TempData::writeLine(int64_t memoryAddress, const std::string& text)
 
 		file.writeLine(str);
 	}
+}
+
+void InfoLog::clear()
+{
+	end();
+	fileName.clear();
+}
+
+bool InfoLog::start()
+{
+	if (!isEnabled())
+		return true;
+
+	file.open(fileName, fs::ofstream::out | fs::ofstream::binary | fs::ofstream::trunc);
+	if (!file.is_open())
+	{
+		Logger::printError(Logger::Error, "Could not open info log file \"%s\".", fileName.u8string());
+		return false;
+	}
+
+	return true;
+}
+
+void InfoLog::end()
+{
+	if (file.is_open())
+		file.close();
+}
+
+void InfoLog::writeLine(const std::string& text)
+{
+	if (!file.is_open())
+		return;
+
+	file.write(text.data(), std::streamsize(text.size()));
+	file.put('\n');
 }

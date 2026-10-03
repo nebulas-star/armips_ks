@@ -90,3 +90,20 @@ public:
 private:
 	TextFile file;
 };
+
+class InfoLog
+{
+public:
+	void setFileName(const fs::path& name) { fileName = name; }
+	void clear();
+	bool start();
+	void end();
+	void writeLine(const std::string& text);
+	bool isEnabled() const { return !fileName.empty(); }
+	bool isOpen() const { return file.is_open(); }
+private:
+	fs::path fileName;
+	fs::ofstream file;
+};
+
+extern InfoLog g_infoLog;

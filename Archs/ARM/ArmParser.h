@@ -8,6 +8,7 @@ class CArmInstruction;
 class CThumbInstruction;
 class Expression;
 class Parser;
+enum class Endianness;
 
 struct ArmRegisterValue;
 struct ArmOpcodeVariables;
@@ -26,6 +27,9 @@ public:
 	std::unique_ptr<CAssemblerCommand> parseDirective(Parser& parser);
 	std::unique_ptr<CArmInstruction> parseArmOpcode(Parser& parser);
 	std::unique_ptr<CThumbInstruction> parseThumbOpcode(Parser& parser);
+#ifdef ARMIPS_HAS_KEYSTONE
+	std::unique_ptr<CAssemblerCommand> parseKeystoneOpcode(Parser& parser, bool thumb, Endianness endianness);
+#endif
 private:
 	bool parseRegisterTable(Parser& parser, ArmRegisterValue& dest, const ArmRegisterDescriptor* table, size_t count);
 	bool parseRegister(Parser& parser, ArmRegisterValue& dest, int max = 15);

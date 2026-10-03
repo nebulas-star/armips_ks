@@ -1,0 +1,1 @@
+UndefinedLabel.asm(4) error: Undefined label "missinglabel"

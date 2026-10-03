@@ -5,6 +5,7 @@
 #include "Main/CommandLineInterface.h"
 #include "Util/ByteArray.h"
 
+#include <cctype>
 #include <cstring>
 
 namespace
@@ -23,6 +24,40 @@ namespace
 		}
 
 		return result;
+	}
+
+	bool readHexFile(const fs::path& path, ByteArray& result)
+	{
+		TextFile file;
+		if (!file.open(path, TextFile::Read))
+			return false;
+
+		std::string digits;
+		for (const std::string& line : file.readAll())
+		{
+			for (char value : line)
+			{
+				if (std::isspace(static_cast<unsigned char>(value)))
+					continue;
+				if (!std::isxdigit(static_cast<unsigned char>(value)))
+					return false;
+				digits += value;
+			}
+		}
+		file.close();
+
+		if ((digits.size() & 1) != 0)
+			return false;
+
+		auto hexValue = [](char value) -> byte {
+			if (value >= '0' && value <= '9')
+				return static_cast<byte>(value - '0');
+			return static_cast<byte>(std::tolower(static_cast<unsigned char>(value)) - 'a' + 10);
+		};
+
+		for (size_t index = 0; index < digits.size(); index += 2)
+			result.appendByte(static_cast<byte>((hexValue(digits[index]) << 4) | hexValue(digits[index + 1])));
+		return true;
 	}
 }
 
@@ -45,6 +80,11 @@ void TestRunner::changeConsoleColor(ConsoleColors color)
 std::vector<fs::path> TestRunner::getTestsList(const fs::path& dir)
 {
 	std::vector<fs::path> tests;
+
+#ifndef ARMIPS_HAS_KEYSTONE
+	if (dir.filename() == "ARMv7A")
+		return tests;
+#endif
 
 	for(auto &entry : fs::directory_iterator(dir))
 	{
@@ -151,9 +191,16 @@ bool TestRunner::executeTest(const fs::path& dir, const std::string& testName, s
 	output.writeLines(errors);
 	output.close();
 
-	if (fs::exists("expected.bin"))
+	if (fs::exists("expected.bin") || fs::exists("expected.hex"))
 	{
-		ByteArray expected = ByteArray::fromFile("expected.bin");
+		ByteArray expected;
+		if (fs::exists("expected.bin"))
+			expected = ByteArray::fromFile("expected.bin");
+		else if (!readHexFile("expected.hex", expected))
+		{
+			errorString += "Invalid expected.hex file\n";
+			result = false;
+		}
 		ByteArray actual = ByteArray::fromFile("output.bin");
 
 		if (expected.size() == actual.size())

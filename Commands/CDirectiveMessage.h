@@ -17,6 +17,18 @@ private:
 	Expression exp;
 };
 
+class CDirectiveInfo: public CAssemblerCommand
+{
+public:
+	CDirectiveInfo(std::vector<Expression> expressions);
+	bool Validate(const ValidateState &state) override;
+	void Encode() const override;
+	void writeTempData(TempData& tempData) const override { };
+private:
+	std::vector<Expression> expressions;
+	std::string message;
+};
+
 class CDirectiveSym: public CAssemblerCommand
 {
 public:

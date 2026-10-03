@@ -100,6 +100,13 @@ void CDirectiveData::setAscii(std::vector<Expression>& entries, bool terminate)
 	this->writeTermination = terminate;
 }
 
+void CDirectiveData::setUtf8(std::vector<Expression>& entries, bool terminate)
+{
+	this->mode = EncodingMode::Utf8;
+	this->entries = entries;
+	this->writeTermination = terminate;
+}
+
 void CDirectiveData::setSjis(std::vector<Expression>& entries, bool terminate)
 {
 	this->mode = EncodingMode::Sjis;
@@ -120,6 +127,7 @@ size_t CDirectiveData::getUnitSize() const
 	{
 	case EncodingMode::U8:
 	case EncodingMode::Ascii:
+	case EncodingMode::Utf8:
 	case EncodingMode::Sjis:
 	case EncodingMode::Custom:
 		return 1;
@@ -147,6 +155,7 @@ size_t CDirectiveData::getDataSize() const
 		return customData.size();
 	case EncodingMode::U8:
 	case EncodingMode::Ascii:
+	case EncodingMode::Utf8:
 	case EncodingMode::U16:
 	case EncodingMode::U32:
 	case EncodingMode::U64:
@@ -308,6 +317,34 @@ void CDirectiveData::encodeNormal()
 	}
 }
 
+void CDirectiveData::encodeUtf8()
+{
+	normalData.clear();
+	for (size_t i = 0; i < entries.size(); i++)
+	{
+		ExpressionValue value = entries[i].evaluate();
+		if (!value.isValid())
+		{
+			Logger::queueError(Logger::Error, "Invalid expression");
+			continue;
+		}
+
+		if (value.isString())
+		{
+			for (unsigned char character: value.strValue.string())
+				normalData.push_back(character);
+		} else if (value.isInt())
+		{
+			normalData.push_back(value.intValue);
+		} else {
+			Logger::queueError(Logger::Error, "Invalid expression type");
+		}
+	}
+
+	if (writeTermination)
+		normalData.push_back(0);
+}
+
 bool CDirectiveData::Validate(const ValidateState &state)
 {
 	position = g_fileManager->getVirtualAddress();
@@ -321,6 +358,9 @@ bool CDirectiveData::Validate(const ValidateState &state)
 	case EncodingMode::U64:
 	case EncodingMode::Ascii:
 		encodeNormal();
+		break;
+	case EncodingMode::Utf8:
+		encodeUtf8();
 		break;
 	case EncodingMode::Float:
 	case EncodingMode::Double:
@@ -351,6 +391,7 @@ void CDirectiveData::Encode() const
 		break;
 	case EncodingMode::U8:
 	case EncodingMode::Ascii:
+	case EncodingMode::Utf8:
 		for (auto value: normalData)
 		{
 			g_fileManager->writeU8((uint8_t)value);
@@ -402,6 +443,7 @@ void CDirectiveData::writeTempData(TempData& tempData) const
 		break;
 	case EncodingMode::U8:
 	case EncodingMode::Ascii:
+	case EncodingMode::Utf8:
 		str += snprintf(str,end-str,".byte ");
 		
 		for (size_t i = 0; i < normalData.size(); i++)
@@ -453,6 +495,7 @@ void CDirectiveData::writeSymData(SymbolData& symData) const
 		symData.addData(position,getDataSize(),SymbolData::DataAscii);
 		break;
 	case EncodingMode::U8:
+	case EncodingMode::Utf8:
 	case EncodingMode::Sjis:
 	case EncodingMode::Custom:
 		symData.addData(position,getDataSize(),SymbolData::Data8);

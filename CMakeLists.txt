@@ -6,6 +6,14 @@ option(ARMIPS_REGEXP "Enable regexp expression functions" ON)
 option(ARMIPS_USE_STD_FILESYSTEM "Use std::filesystem instead of third party implementation" OFF)
 option(ARMIPS_LIBRARY_ONLY "Build libarmips, skip building armips and armipstests binaries" OFF)
 
+set(ARMIPS_KEYSTONE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/keystone" CACHE PATH
+	"Path to a Keystone source tree used by the ARMv7-A backend")
+set(_ARMIPS_ARMV7A_DEFAULT OFF)
+if (EXISTS "${ARMIPS_KEYSTONE_SOURCE_DIR}/CMakeLists.txt")
+	set(_ARMIPS_ARMV7A_DEFAULT ON)
+endif()
+option(ARMIPS_ARMV7A "Build the Keystone-based ARMv7-A/Thumb-2 backend" ${_ARMIPS_ARMV7A_DEFAULT})
+
 macro(check_compiler VARIABLE NAME)
 	if (${CMAKE_CXX_COMPILER_ID} MATCHES ${NAME})
 		set(${VARIABLE} TRUE)
@@ -101,6 +109,8 @@ armips_target_sources(armips PRIVATE
 	Archs/ARM/CArmInstruction.h
 	Archs/ARM/CThumbInstruction.cpp
 	Archs/ARM/CThumbInstruction.h
+	Archs/ARM/KeystoneArmInstruction.cpp
+	Archs/ARM/KeystoneArmInstruction.h
 	Archs/ARM/Pool.cpp
 	Archs/ARM/Pool.h
 	Archs/ARM/ThumbOpcodes.cpp
@@ -205,6 +215,33 @@ armips_target_sources(armips PRIVATE
 	Util/Util.cpp
 	Util/Util.h
 )
+
+if (ARMIPS_ARMV7A)
+	if (NOT EXISTS "${ARMIPS_KEYSTONE_SOURCE_DIR}/CMakeLists.txt")
+		message(FATAL_ERROR
+			"ARMIPS_ARMV7A is enabled, but ARMIPS_KEYSTONE_SOURCE_DIR does not contain Keystone: "
+			"${ARMIPS_KEYSTONE_SOURCE_DIR}. Initialize the bundled dependency with "
+			"'git submodule update --init --recursive', or set ARMIPS_KEYSTONE_SOURCE_DIR explicitly.")
+	endif()
+
+	# Keystone embeds an LLVM 3.9-era build. Limit it to the one target used by
+	# armips and force UTF-8 for llvm-build so non-ASCII checkout paths work.
+	set(LLVM_TARGETS_TO_BUILD ARM CACHE STRING "Keystone targets" FORCE)
+	set(BUILD_LIBS_ONLY ON CACHE BOOL "Only build the Keystone library" FORCE)
+	set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build Keystone as a static library" FORCE)
+	set(KEYSTONE_BUILD_STATIC_RUNTIME OFF CACHE BOOL "Use the parent runtime selection" FORCE)
+	set(_ARMIPS_OLD_PYTHONUTF8 "$ENV{PYTHONUTF8}")
+	set(_ARMIPS_OLD_PYTHONIOENCODING "$ENV{PYTHONIOENCODING}")
+	set(ENV{PYTHONUTF8} 1)
+	set(ENV{PYTHONIOENCODING} utf-8)
+	add_subdirectory("${ARMIPS_KEYSTONE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/keystone")
+	set(ENV{PYTHONUTF8} "${_ARMIPS_OLD_PYTHONUTF8}")
+	set(ENV{PYTHONIOENCODING} "${_ARMIPS_OLD_PYTHONIOENCODING}")
+
+	target_compile_definitions(armips PUBLIC ARMIPS_HAS_KEYSTONE=1)
+	target_include_directories(armips PRIVATE "${ARMIPS_KEYSTONE_SOURCE_DIR}/include")
+	target_link_libraries(armips PRIVATE keystone)
+endif()
 
 if (ARMIPS_PRECOMPILE_HEADERS)
 	target_precompile_headers(armips PRIVATE

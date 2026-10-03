@@ -1,3 +1,6 @@
 [submodule "ext/filesystem"]
 	path = ext/filesystem
 	url = https://github.com/Kingcom/filesystem.git
+[submodule "ext/keystone"]
+	path = ext/keystone
+	url = https://github.com/keystone-engine/keystone.git

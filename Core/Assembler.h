@@ -43,6 +43,7 @@ struct ArmipsArguments
 	fs::path inputFileName;
 	fs::path tempFileName;
 	fs::path symFileName;
+	fs::path infoLogFileName;
 	bool useAbsoluteFileNames;
 
 	// memory mode

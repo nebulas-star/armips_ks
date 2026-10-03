@@ -77,6 +77,7 @@ public:
 	}
 
 	bool hasError() { return error; }
+	bool isInitializingMacro() const { return initializingMacro; }
 	void updateFileInfo();
 protected:
 	void clearError() { error = false; }

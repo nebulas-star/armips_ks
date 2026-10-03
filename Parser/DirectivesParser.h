@@ -52,6 +52,7 @@ using DirectiveMap = std::unordered_multimap<std::string, const DirectiveEntry>;
 #define DIRECTIVE_DATA_HWORD        0x0000000A
 #define DIRECTIVE_DATA_WORD         0x0000000B
 #define DIRECTIVE_DATA_DWORD        0x0000000C
+#define DIRECTIVE_DATA_UTF8         0x0000000D
 #define DIRECTIVE_DATA_TERMINATION	0x00000100
 
 // message directive flags
@@ -72,6 +73,8 @@ using DirectiveMap = std::unordered_multimap<std::string, const DirectiveEntry>;
 #define DIRECTIVE_ARM_3DS			0x00000003
 #define DIRECTIVE_ARM_BIG			0x00000004
 #define DIRECTIVE_ARM_LITTLE		0x00000005
+#define DIRECTIVE_ARM_V7A			0x00000006
+#define DIRECTIVE_ARM_V7A_BIG		0x00000007
 
 #define DIRECTIVE_SH_SATURN			0x00000001
 
